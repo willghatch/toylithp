@@ -1,0 +1,35 @@
+What does a simple lithp need?
+
+variables
+literals
+procedure calls
+(lambda args body) - check if args is a symbol instead of list for funcs that have variable length... or be like js and just allow funcs to be called with however many args all the time?
+(progn
+(quote
+(if
+(set
+(define
+(cons/car/cdr
+other simple functions... +-*/, booleans, equality/inequality (and/or should be short-circuiting derived macros... or I could just use js && and ||...)
+tokenizer, parser, evaluator
+environments
+
+(defmacro
+strings
+comments
+' ` , ,@
+read
+write
+streams/ports
+
+tail recursion
+
+error handling of some sort
+
+I think I want n for null (since it's js I'll use null instead of nil), l for lambda...
+t for true, f for false, but have the long forms permissible too.
+Maybe some syntax with {} and []... they can be objects and arrays, like in JS.
+Lists can be {car: foo, cdr:bar} internally.  Maybe allow lists and arrays interchangeably.
+For convenience, allow foo.bar notation.
+
+In the end maybe I'll throw in some tests... but it's just a toy...
