@@ -1,5 +1,7 @@
 // toylithp.js -- a toy lithp interpreter written in JavaThcript
 
+var debug = function(x){print(JSON.stringify(x))}
+
 // TODO - make this work with linked lists
 var idx = function(xs, n){
     if (Array.isArray(xs)){
@@ -42,14 +44,14 @@ var length = function(x){
 }
 
 var mkEnv = function(parent, params, args){
-    var e = object.create(parent)
+    var e = Object.create(parent)
     if (params){
         var len = length(params)
         for(var i = 0; i < len; ++i){
             if (args.length < i+1){
-                e[params[i]] = null
+                e[params[i].string] = null
             } else {
-                e[params[i]] = args[i]
+                e[params[i].string] = args[i]
             }
         }
     }
@@ -99,6 +101,9 @@ rParthe = function(tokenth){
     if (token == "("){
         var arr = []
         while (tokenth[tokenth.length-1] != ")"){
+            if (tokenth.length == 0) {
+                return "Not enough closing parens!"
+            }
             arr.push(rParthe(tokenth))
         }
         tokenth.pop()
@@ -124,15 +129,26 @@ var pLithpEvalForms = function(forms, env){
 var pLithpEval = function (exp, env){
     env = env || {}
     var isList = function(x){return Array.isArray(x)}
+    var isFunction = function(obj) {
+      return !!(obj && obj.constructor && obj.call && obj.apply);
+    };
+    var procCall = function(func, forms, env){
+        if (!isFunction(func)){
+            func = pLithpEval(func, env)
+        }
+        var args = []
+        var form = null
+        while (form = car(forms)){
+            args.push(pLithpEval(form, env))
+            forms = cdr(forms)
+        }
+        return func.apply(this, args)
+    }
 
     if (exp.__proto__ == symProto){return env[exp.string]}
     else if (!isList(exp)){return exp} // this must be a constant string or number
     else {
         var head = car(exp)
-        if (head.__proto__ != symProto){
-            // TODO -- handle error
-            return null
-        }
         var str = head.string
         if (str == "quote"){return car(cdr(exp))}
         else if (str == "if"){
@@ -141,9 +157,8 @@ var pLithpEval = function (exp, env){
             var ifF = idx(exp, 3)
             return pLithpEval(test, env)? pLithpEval(ifT, env): pLithpEval(ifF, env)
         } else if (str == "define"){
-            env[idx(exp, 1).string] = idx(exp, 2)
+            env[idx(exp, 1).string] = pLithpEval(idx(exp, 2), env)
         } else if (str == "set"){
-            // TODO - fix this -- I think hasOwnProp works differently than I thought
             var e = env
             while (! Object.hasOwnProperty.call(e, idx(exp,1).string)){
                 e = env.__proto__
@@ -152,31 +167,19 @@ var pLithpEval = function (exp, env){
                     return null
                 }
             }
-            e[idx(exp, 1)] = idx(exp, 2)
+            e[idx(exp, 1).string] = idx(exp, 2)
         } else if (str == "begin"){
-            return pLithpEvalForms(cdr(exp), env)
+            return pLithpEvalForms(cdr(exp), mkEnv(env, [], []))
         } else if (str == "lambda"){
-            // TODO -- this is broken, I'll fix it tomorrow
             return function(){
                 return pLithpEvalForms(cdr(cdr(exp)), mkEnv(env, idx(exp,1), arguments))
             }
         } else { // procedure call
-            var args = []
-            var forms = cdr(exp)
-            while (form = car(forms)){
-                args.push(pLithpEval(form, env))
-                forms = cdr(forms)
-            }
-            return pLithpEval(car(exp), env).apply(this, args)
+            return procCall(car(exp), cdr(exp), env)
         }
     }
 }
 
-//var plus = function(a,b){return a.number+b.number}
-//var minus = function(a,b){return a.number-b.number}
-//var div = function(a,b){return a.number/b.number}
-//var mult = function(a,b){return a.number*b.number}
-//var mod = function(a,b){return a.number%b.number}
 var plus = function(a,b){return a+b}
 var minus = function(a,b){return a-b}
 var div = function(a,b){return a/b}
@@ -189,14 +192,18 @@ var mod = function(a,b){return a%b}
 
 tl = "(if (plus 5 -7) (minus 9 3) (div 99 -27))"
 tl = "(begin (define x 3) (define y 33) (define foo (lambda (a b) (plus a b))) ((lambda (a) (plus a 10))  x))"
-tl = "(quote (1 2 (4 5 6) 3))"
+tl = "(begin (define x (plus 3 5)) (plus x 3))"
+tl = "(begin (define foo (lambda (a) (plus a 5))) (foo 7))"
+//tl = "(begin ((lambda (x) x) 9))"
+//tl = "(begin (define bar (plus 3 3)) (minus bar 5))"
+tl = "(begin (define foo 7) (begin (set foo 9) foo) foo)"
 tt = tokenithe(tl)
+//print(tt)
 tt.reverse()
 tp = rParthe(tt)
 //print(JSON.stringify(tp))
 //print(this.plus)
 print(JSON.stringify(pLithpEval(tp, this)))
 
-// BOOKMARK -- lambda and set are broken, but the other forms that I've implemented so far all seem to work
 
 
