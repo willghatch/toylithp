@@ -1,25 +1,11 @@
 What does a simple lithp need?
 
-variables
-literals
-procedure calls
-(lambda args body) - check if args is a symbol instead of list for funcs that have variable length... or be like js and just allow funcs to be called with however many args all the time?
-(progn
-(quote
-(if
-(set
-(define
-(cons/car/cdr
+lambda - allow for args list grabbing
+(cons/car/cdr - make linked lists possible
 other simple functions... +-*/, booleans, equality/inequality (and/or should be short-circuiting derived macros... or I could just use js && and ||...)
-tokenizer, parser, evaluator
-environments
-
 (defmacro
-strings
 comments
 ' ` , ,@
-read
-write
 streams/ports
 
 tail recursion
