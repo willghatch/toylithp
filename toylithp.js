@@ -1,20 +1,32 @@
 // toylithp.js -- a toy lithp interpreter written in JavaThcript
-
+var dbg = null
 var toylithp = function(){
     var tl = Object.create(this) // hopefully this makes the global object the parent,
                                    // so the global scope is accessible to lisp forms
     tl.jseval = eval
-    tl.eval = function(str){
-        var tokenth = tl.tokenithe(str)
-        tokenth.reverse()
-        var parthed = tl.rParthe(tokenth)
-        return tl.pLithpEval(parthed, tl)
+    tl.jsonstr = JSON.stringify
+    tl.reval = function(str){
+        var parthed = tl.read(str)
+        return tl.eval(parthed, tl)
     }
-    
+    tl.read = function(str){
+        var tokenth = tokenithe(str)
+        tokenth.reverse()
+        return rParthe(tokenth)
+    }
+
     // TODO - make this work with linked lists
+    tl.listP = function(x){return Array.isArray(x)}
     tl.idx = function(xs, n){
         if (Array.isArray(xs)){
             return xs[n]
+        } else {
+            return null
+        }
+    }
+    tl.nthcdr = function(xs, n){
+        if (Array.isArray(xs)){
+            return xs.slice(n)
         } else {
             return null
         }
@@ -30,26 +42,24 @@ var toylithp = function(){
     tl.first = tl.car
     tl.second = function(x){return tl.idx(x, 0)}
 
-    tl.symProto = {}
+    tl.symProto = {symbolP:true}
     tl.mkSym = function(str){
         var s = Object.create(tl.symProto)
         s.string = str
         return s
     }
-    tl.numProto = {}
-    //var mkNumber = function(str){
-    //    var n = Object.create(numProto)
-    //    n.number = Number(str)
-    //    return n
-    //}
+    tl.symbolP = function(symbol){return symbol && symbol.symbolP}
     tl.mkNumber = Number
 
     tl.length = function(x){
-        if (Array.isArray(x)){
+        if (x.length || x.length == 0) {
             return x.length
         } else {
             return null
         }
+    }
+    tl.countKeys = function(obj) {
+        return Object.keys(obj).length;
     }
 
     tl.mkEnv = function(parent, params, args){
@@ -64,10 +74,11 @@ var toylithp = function(){
                 }
             }
         }
+        e.arguments = args
         return e
     }
 
-    tl.tokenithe = function(lithp){
+    var tokenithe = function(lithp){
         // return an array of tokenth from a thtring
 
 
@@ -99,7 +110,7 @@ var toylithp = function(){
         return tokenth
     }
 
-    tl.rParthe = function(tokenth){
+    var rParthe = function(tokenth){
         // return thyntaxth tree, from an array of tokenth in reverthe order
         if (tokenth.length == 0){
             // TODO - handle errors...
@@ -113,7 +124,7 @@ var toylithp = function(){
                 if (tokenth.length == 0) {
                     return "Not enough closing parens!"
                 }
-                arr.push(tl.rParthe(tokenth))
+                arr.push(rParthe(tokenth))
             }
             tokenth.pop()
             return arr
@@ -126,79 +137,152 @@ var toylithp = function(){
         }
     }
 
-    tl.pLithpEvalForms = function(forms, env){
+    tl.evalForms = function(forms, env){
         var last = null
         while (form = tl.car(forms)){
-            last = tl.pLithpEval(form, env)
+            last = tl.eval(form, env)
             forms = tl.cdr(forms)
         }
         return last
     }
 
-    tl.pLithpEval = function (exp, env){
+    tl.macroTable = {}
+
+    tl.eval = function (exp, env){
         env = env || {}
-        var isList = function(x){return Array.isArray(x)}
         var isFunction = function(obj) {
             return !!(obj && obj.constructor && obj.call && obj.apply);
         };
-        var procCall = function(func, forms, env){
+        var procCall = function(func, forms, env, isMacro){
             if (!isFunction(func)){
-                func = tl.pLithpEval(func, env)
+                func = tl.eval(func, env)
             }
             var args = []
             var form = null
             while (form = tl.car(forms)){
-                args.push(tl.pLithpEval(form, env))
+                args.push(isMacro? form: tl.eval(form, env))
                 forms = tl.cdr(forms)
             }
             return func.apply(this, args)
         }
 
-        if (exp.__proto__ == tl.symProto){return env[exp.string]}
-        else if (!isList(exp)){return exp} // this must be a constant string or number
+        if (tl.symbolP(exp)){return env[exp.string]}
+        else if (!tl.listP(exp)){return exp} // this must be a constant string or number
         else {
             var head = tl.car(exp)
             var str = head.string
             if (str == "quote"){return tl.car(tl.cdr(exp))}
-            else if (str == "if"){
+            else if (str == "quasiquote"){
+                return tl.quasiExpand(tl.idx(exp,1), env)
+            } else if (str == "if"){
                 var test = tl.idx(exp, 1)
                 var ifT = tl.idx(exp, 2)
                 var ifF = tl.idx(exp, 3)
-                return tl.pLithpEval(test, env)?
-                    tl.pLithpEval(ifT, env):
-                    tl.pLithpEval(ifF, env)
+                print("test: "+JSON.stringify(test))
+                print("ifT: "+JSON.stringify(ifT))
+                print("ifF: "+JSON.stringify(ifF))
+                if (tl.eval(test, env)){
+                    print("truth")
+                    return tl.eval(ifT, env)
+                } else {
+                    print("falseeee")
+                    return tl.eval(ifF, env)
+                }
             } else if (str == "define"){
-                env[tl.idx(exp, 1).string] = tl.pLithpEval(tl.idx(exp, 2), env)
+                env[tl.idx(exp, 1).string] = tl.eval(tl.idx(exp, 2), env)
             } else if (str == "set"){
                 var e = env
                 while (! Object.hasOwnProperty.call(e, tl.idx(exp,1).string)){
                     e = env.__proto__
-                    if(typeof e == "undefined"){
+                    if(!tl.countKeys(e) && !e.__proto__){
                         // TODO -- handle error
                         return null
                     }
                 }
-                e[tl.idx(exp, 1).string] = tl.idx(exp, 2)
+                var result = tl.eval(tl.idx(exp, 2), env)
+                e[tl.idx(exp, 1).string] = result
+                return result
             } else if (str == "begin"){
-                return tl.pLithpEvalForms(tl.cdr(exp), tl.mkEnv(env, [], []))
+                return tl.evalForms(tl.cdr(exp), tl.mkEnv(env, [], []))
             } else if (str == "lambda"){
                 return function(){
-                    return tl.pLithpEvalForms(tl.cdr(tl.cdr(exp)),
-                                                tl.mkEnv(env, tl.idx(exp,1),
-                                                           arguments))
+                    return tl.evalForms(tl.nthcdr(exp,2),
+                                        tl.mkEnv(env, tl.idx(exp,1),
+                                                 Array.prototype.slice.call(arguments)))
                 }
+            } else if (str == "defmacro"){
+                tl.macroTable[tl.idx(exp,1).string] = function(){
+                    return tl.evalForms(tl.nthcdr(exp,3),
+                                        tl.mkEnv(env, tl.idx(exp,2),
+                                                 Array.prototype.slice.call(arguments)))
+                }
+            } else if (tl.macroTable[str]){
+                var expanded = procCall(tl.macroTable[str],tl.cdr(exp), env, true)
+                dbg = expanded
+                print(tl.jsonstr(expanded))
+                return tl.eval(expanded, env)
             } else { // procedure call
-                return procCall(tl.car(exp), tl.cdr(exp), env)
+                return procCall(tl.car(exp), tl.cdr(exp), env, false)
             }
         }
     }
+    tl.quasiExpand = function(e, env){
+        if (!tl.listP(e)){
+            return e
+        }
+        var ce = tl.car(e)
+        if (tl.symbolP(ce)
+            && (ce.string == "unquote" || ce.string == "unquotesplicing")){
+            // if it's unquotesplicing it should really be another level down...
+            return tl.eval(tl.idx(e, 1), env)
+        }
+        var ep = []
+        var l = tl.length(e)
+        for(var i = 0; i < l; ++i){
+            var item = tl.idx(e,i)
+            if (tl.listP(item)){
+                if (tl.symbolP(tl.car(item)) && tl.car(item).string == "unquotesplicing"){
+                    var items = tl.eval(tl.idx(item,1), env)
+                    var il = tl.length(items)
+                    for(var c = 0; c < il; ++c){
+                        ep.push(items[c])
+                    }
+                } else {
+                    ep.push(tl.quasiExpand(item, env))
+                }
+            } else {
+                ep.push(item)
+            }
+        }
+        return ep
+    }
+
 
     tl.plus = function(a,b){return a+b}
     tl.minus = function(a,b){return a-b}
     tl.div = function(a,b){return a/b}
     tl.mult = function(a,b){return a*b}
     tl.mod = function(a,b){return a%b}
+    tl.not = function(a){return !a}
+    tl.equal = function(a,b){return a==b}
+    tl.t = true
+    tl.f = false
+    tl.n = null
 
     return tl
 }()
+
+toylithp.reval(
+    " (defmacro inc (ex) (quasiquote (set (unquote ex) (plus 1 (unquote ex))))) "
+)
+
+toylithp.reval(
+    " (defmacro and () (define andArgs arguments) (print (length andArgs)) (if (not (length andArgs)) t (quasiquote (if (unquote (car andArgs)) (and (unquotesplicing (cdr andArgs))) f))) ) "
+)
+
+//test = toylithp.reval("(quasiquote  t)")
+//test = toylithp.reval("(quasiquote arguments)")
+//test = toylithp.reval("(begin (define foo (quote (1 2 3 4 5))) (quasiquote (bar (unquotesplicing foo))))")
+//test = toylithp.reval("(begin (define arr 3) (inc arr) (plus arr 1))")
+
 
