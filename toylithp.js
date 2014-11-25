@@ -178,14 +178,14 @@ var toylithp = function(){
                 var test = tl.idx(exp, 1)
                 var ifT = tl.idx(exp, 2)
                 var ifF = tl.idx(exp, 3)
-                print("test: "+JSON.stringify(test))
-                print("ifT: "+JSON.stringify(ifT))
-                print("ifF: "+JSON.stringify(ifF))
+                //print("test: "+JSON.stringify(test))
+                //print("ifT: "+JSON.stringify(ifT))
+                //print("ifF: "+JSON.stringify(ifF))
                 if (tl.eval(test, env)){
-                    print("truth")
+                    //print("truth")
                     return tl.eval(ifT, env)
                 } else {
-                    print("falseeee")
+                    //print("falseeee")
                     return tl.eval(ifF, env)
                 }
             } else if (str == "define"){
@@ -219,7 +219,7 @@ var toylithp = function(){
             } else if (tl.macroTable[str]){
                 var expanded = procCall(tl.macroTable[str],tl.cdr(exp), env, true)
                 dbg = expanded
-                print(tl.jsonstr(expanded))
+                //print(tl.jsonstr(expanded))
                 return tl.eval(expanded, env)
             } else { // procedure call
                 return procCall(tl.car(exp), tl.cdr(exp), env, false)
@@ -268,6 +268,22 @@ var toylithp = function(){
     tl.t = true
     tl.f = false
     tl.n = null
+    tl.macroTable.dotsym = function(){
+        var res = []
+        res.push(tl.mkSym("dotstr"))
+        res.push(arguments[0])
+        for(var i = 1; i < arguments.length; ++i){
+            res.push(arguments[i].string)
+        }
+        return res
+    }
+    tl.dotstr = function(){
+        var res = arguments[0]
+        for(var i = 1; i < arguments.length; ++i){
+            res = res[arguments[i]]
+        }
+        return res
+    }
 
     return tl
 }()
@@ -277,7 +293,7 @@ toylithp.reval(
 )
 
 toylithp.reval(
-    " (defmacro and () (define andArgs arguments) (print (length andArgs)) (if (not (length andArgs)) t (quasiquote (if (unquote (car andArgs)) (and (unquotesplicing (cdr andArgs))) f))) ) "
+    " (defmacro and () (define andArgs arguments) (if (not (length andArgs)) t (quasiquote (if (unquote (car andArgs)) (and (unquotesplicing (cdr andArgs))) f))) ) "
 )
 
 //test = toylithp.reval("(quasiquote  t)")
