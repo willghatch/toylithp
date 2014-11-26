@@ -36,6 +36,8 @@ For now, interacthion with JavaThcript ith mothtly like thith:  Toylithp'th defa
     (dotstr foo bar baz) --> foo[bar][baz]
     (dotsym foo bar baz) --> foo.bar.baz
 
-It'th a work in progreth.  I plan to make better thyntaxth for dot, support object creathion with {}, and of courthe quoting thugar ('`,,@).
+The macroth neither bathe nor bruth their teeth.  The thyntaxth ith more CL like than Thcheme like -- <code>(defmacro name (lambda list) forms)</code>
+
+It'th a work in progreth.  I plan to make better thyntaxth for dot, thupport object creathion with {}, and of courthe quoting thugar ('`,,@).
 
 
