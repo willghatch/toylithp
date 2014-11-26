@@ -25,5 +25,17 @@ Ath well ath thome predefined functhionth and valueth:
 
 I plan to thupport both JavaThcript arrayth and linked lithttth, with [] and () thyntaxth, rethpectively.  And objectth with {} thyntaxth.
 
-But it'th a work in progreth.
+The bathic functhions:
+
+    toylithp.eval(toylithp.read("(thome thexthpth (can go) (here))"))
+    // or
+    toylithp.reval("(ithnt lithp fun!)")
+
+For now, interacthion with JavaThcript ith mothtly like thith:  Toylithp'th default environment inheritth from the global environment.  Acctheth to memberth of objectth ith with the <code>dotsym</code> macro or the <code>dotstr</code> function.
+
+    (dotstr foo bar baz) --> foo[bar][baz]
+    (dotsym foo bar baz) --> foo.bar.baz
+
+It'th a work in progreth.  I plan to make better thyntaxth for dot, support object creathion with {}, and of courthe quoting thugar ('`,,@).
+
 
