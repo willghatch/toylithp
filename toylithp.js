@@ -124,16 +124,22 @@ var toylithp = function(){
             var arr = []
             while (tokenth[tokenth.length-1] != ")"){
                 if (tokenth.length == 0) {
-                    return "Not enough closing parens!"
+                    throw "error during parsing: not enough closing parens"
                 }
                 arr.push(rParthe(tokenth))
             }
             tokenth.pop()
             return arr
         } else if (token == ")"){
-            // error - these should be popped by a previous step
-            // TODO - handle errors somehow
-            return null
+            throw "error during parsing: unexpected closing paren."
+        } else if (token == "'"){
+            return [tl.mkSym("quote"), rParthe(tokenth)]
+        } else if (token == "`"){
+            return [tl.mkSym("quasiquote"), rParthe(tokenth)]
+        } else if (token == ","){
+            return [tl.mkSym("unquote"), rParthe(tokenth)]
+        } else if (token == ",@"){
+            return [tl.mkSym("unquoteSplicing"), rParthe(tokenth)]
         } else {
             return token
         }
