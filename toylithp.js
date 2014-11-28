@@ -240,8 +240,8 @@ var toylithp = function(){
         }
         var ce = tl.car(e)
         if (tl.symbolP(ce)
-            && (ce.string == "unquote" || ce.string == "unquotesplicing")){
-            // if it's unquotesplicing it should really be another level down...
+            && (ce.string == "unquote" || ce.string == "unquoteSplicing")){
+            // if it's unquoteSplicing it should really be another level down...
             return tl.eval(tl.idx(e, 1), env)
         }
         var ep = []
@@ -249,7 +249,7 @@ var toylithp = function(){
         for(var i = 0; i < l; ++i){
             var item = tl.idx(e,i)
             if (tl.listP(item)){
-                if (tl.symbolP(tl.car(item)) && tl.car(item).string == "unquotesplicing"){
+                if (tl.symbolP(tl.car(item)) && tl.car(item).string == "unquoteSplicing"){
                     var items = tl.eval(tl.idx(item,1), env)
                     var il = tl.length(items)
                     for(var c = 0; c < il; ++c){
@@ -301,12 +301,12 @@ toylithp.reval(
 )
 
 toylithp.reval(
-    " (defmacro and () (define andArgs arguments) (if (not (length andArgs)) t (quasiquote (if (unquote (car andArgs)) (and (unquotesplicing (cdr andArgs))) f))) ) "
+    " (defmacro and () (define andArgs arguments) (if (not (length andArgs)) t (quasiquote (if (unquote (car andArgs)) (and (unquoteSplicing (cdr andArgs))) f))) ) "
 )
 
 //test = toylithp.reval("(quasiquote  t)")
 //test = toylithp.reval("(quasiquote arguments)")
-//test = toylithp.reval("(begin (define foo (quote (1 2 3 4 5))) (quasiquote (bar (unquotesplicing foo))))")
+//test = toylithp.reval("(begin (define foo (quote (1 2 3 4 5))) (quasiquote (bar (unquoteSplicing foo))))")
 //test = toylithp.reval("(begin (define arr 3) (inc arr) (plus arr 1))")
 
 
