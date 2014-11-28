@@ -81,14 +81,16 @@ var toylithp = function(){
     var tokenithe = function(lithp){
         // return an array of tokenth from a thtring
 
-
         var tokenBuilders = [
             // regex and function for how to make atom
             {r: /^(\s+)/, a:function(m){return null}}, // whitespace
             {r: /^[\(\)\[\]]/, a:function(m){return m}}, // ()[] list delimiters
             {r: /^(-?0x[0-9a-fA-F]+|-?\d+)/, a:function(m){return tl.mkNumber(m)}}, // numbers
             {r: /^("[^"]*")/, a:function(m){return m.substring(1,m.length-1)}}, // string
-            {r: /^([^\d\s\(\)][^\s\(\)]*)/, a:function(m){return tl.mkSym(m)}}, // symbol
+            {r: /^([^\d\s\(\)\[\]`'",@.][^\s\(\)\[\]`'",@.]*)/,
+                a:function(m){return tl.mkSym(m)}}, // symbol
+            {r: /'|`|,@|,/, a:function(m){return m}}, // quotes
+            {r: /.*/, a:function(m){throw "error tokenizing on: "+m}}, // error
         ]
 
         var tokenth = []
