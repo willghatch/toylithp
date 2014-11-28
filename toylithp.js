@@ -297,11 +297,11 @@ var toylithp = function(){
 }()
 
 toylithp.reval(
-    " (defmacro inc (ex) (quasiquote (set (unquote ex) (plus 1 (unquote ex))))) "
+    " (defmacro inc (ex) `(set ,ex (plus 1 ,ex))) "
 )
 
 toylithp.reval(
-    " (defmacro and () (define andArgs arguments) (if (not (length andArgs)) t (quasiquote (if (unquote (car andArgs)) (and (unquoteSplicing (cdr andArgs))) f))) ) "
+    " (defmacro and () (define andArgs arguments) (if (not (length andArgs)) t `(if ,(car andArgs) (and ,@(cdr andArgs)) f)) ) "
 )
 
 //test = toylithp.reval("(quasiquote  t)")
