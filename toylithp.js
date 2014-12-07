@@ -89,7 +89,7 @@ var toylithp = function(){
             {r: /^("[^"]*")/, a:function(m){return m.substring(1,m.length-1)}}, // string
             {r: /^([^\d\s\(\)\[\]`'",@.][^\s\(\)\[\]`'",@.]*)/,
                 a:function(m){return tl.mkSym(m)}}, // symbol
-            {r: /'|`|,@|,/, a:function(m){return m}}, // quotes
+            {r: /^('|`|,@|,)/, a:function(m){return m}}, // quotes
             {r: /.*/, a:function(m){throw "error tokenizing on: "+m}}, // error
         ]
 
