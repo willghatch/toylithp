@@ -7,16 +7,28 @@ var toylithp = function(){
     tl.jsonstr = JSON.stringify
     tl.reval = function(str){
         var parthed = tl.read(str)
-        return tl.eval(parthed, tl)
+        return tl.evalForms(parthed, tl)
     }
+
     tl.read = function(str){
         var tokenth = tokenithe(str)
         tokenth.reverse()
-        return rParthe(tokenth)
+        var parthed = []
+        while(tokenth.length > 0){
+            parthed.push(rParthe(tokenth))
+        }
+        return parthed
     }
 
+    tl.undefinedP = function(x){return typeof x == 'undefined'}
     // TODO - make this work with linked lists
     tl.listP = function(x){return Array.isArray(x)}
+    tl.emptyListP = function(x){
+        if (Array.isArray(x)){
+            return x.length == 0
+        }
+        return null === x || tl.undefinedP(x)
+    }
     tl.idx = function(xs, n){
         if (Array.isArray(xs)){
             return xs[n]
@@ -33,11 +45,7 @@ var toylithp = function(){
     }
     tl.car = function(x){return tl.idx(x, 0)}
     tl.cdr = function(x){
-        if (Array.isArray(x)){
-            return x.slice(1)
-        } else {
-            return null
-        }
+        return tl.nthcdr(x, 1)
     }
     tl.first = tl.car
     tl.second = function(x){return tl.idx(x, 0)}
@@ -49,7 +57,6 @@ var toylithp = function(){
         return s
     }
     tl.symbolP = function(symbol){return symbol && symbol.symbolP}
-    tl.mkNumber = Number
 
     tl.length = function(x){
         if (x.length || x.length == 0) {
@@ -85,7 +92,7 @@ var toylithp = function(){
             // regex and function for how to make atom
             {r: /^(\s+)/, a:function(m){return null}}, // whitespace
             {r: /^[\(\)\[\]]/, a:function(m){return m}}, // ()[] list delimiters
-            {r: /^(-?0x[0-9a-fA-F]+|-?\d+)/, a:function(m){return tl.mkNumber(m)}}, // numbers
+            {r: /^(-?0x[0-9a-fA-F]+|-?\d+(\.\d+)?)/, a:function(m){return Number(m)}}, // numbers
             {r: /^("[^"]*")/, a:function(m){return m.substring(1,m.length-1)}}, // string
             {r: /^([^\d\s\(\)\[\]`'",@.][^\s\(\)\[\]`'",@.]*)/,
                 a:function(m){return tl.mkSym(m)}}, // symbol
@@ -103,10 +110,6 @@ var toylithp = function(){
                     lithp = lithp.substring(match[0].length)
                     break
                 }
-                if (i > tokenBuilders.length){
-                    // error - TODO - print something or something...
-                    return []
-                }
             }
         }
         return tokenth
@@ -115,7 +118,6 @@ var toylithp = function(){
     var rParthe = function(tokenth){
         // return thyntaxth tree, from an array of tokenth in reverthe order
         if (tokenth.length == 0){
-            // TODO - handle errors...
             return null
         }
         var token = tokenth.pop()
@@ -147,27 +149,30 @@ var toylithp = function(){
 
     tl.evalForms = function(forms, env){
         var last = null
-        while (form = tl.car(forms)){
+        while (!tl.emptyListP(forms)){
+            form = tl.car(forms)
             last = tl.eval(form, env)
             forms = tl.cdr(forms)
         }
         return last
     }
 
+    tl.functionP = function(obj) {
+        return !!(obj && obj.constructor && obj.call && obj.apply);
+    };
+
     tl.macroTable = {}
 
     tl.eval = function (exp, env){
         env = env || {}
-        var isFunction = function(obj) {
-            return !!(obj && obj.constructor && obj.call && obj.apply);
-        };
         var procCall = function(func, forms, env, isMacro){
-            if (!isFunction(func)){
+            if (!tl.functionP(func)){
                 func = tl.eval(func, env)
             }
             var args = []
             var form = null
-            while (form = tl.car(forms)){
+            while (!tl.emptyListP(forms)){
+                form = tl.car(forms)
                 args.push(isMacro? form: tl.eval(form, env))
                 forms = tl.cdr(forms)
             }
@@ -186,14 +191,11 @@ var toylithp = function(){
                 var test = tl.idx(exp, 1)
                 var ifT = tl.idx(exp, 2)
                 var ifF = tl.idx(exp, 3)
-                //print("test: "+JSON.stringify(test))
-                //print("ifT: "+JSON.stringify(ifT))
-                //print("ifF: "+JSON.stringify(ifF))
-                if (tl.eval(test, env)){
-                    //print("truth")
+                var testRes = tl.eval(test, env)
+                // JS has the annoying habit of interpreting [] as true...
+                if (testRes && !tl.emptyListP(testRes)){
                     return tl.eval(ifT, env)
                 } else {
-                    //print("falseeee")
                     return tl.eval(ifF, env)
                 }
             } else if (str == "define"){
@@ -226,8 +228,6 @@ var toylithp = function(){
                 }
             } else if (tl.macroTable[str]){
                 var expanded = procCall(tl.macroTable[str],tl.cdr(exp), env, true)
-                dbg = expanded
-                //print(tl.jsonstr(expanded))
                 return tl.eval(expanded, env)
             } else { // procedure call
                 return procCall(tl.car(exp), tl.cdr(exp), env, false)
